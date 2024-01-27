@@ -7,21 +7,21 @@ class BackGroundProcessor:
     base_ckpt_dir='model/'
     base_ckpt_name='backgroundRemBase.pth'
     base_size=[1024,1024]
-    def DownLoadBaseModel():
+    def DownLoadBaseModel(self):
         urllib.request.urlretrieve(self.base_model_link, self.base_ckpt_dir + self.base_ckpt_name)
     
     def check_models(self):
-        if os.path.exists("base_ckpt_dir + base_ckpt_name"):
+        if os.path.exists(self.base_ckpt_dir + self.base_ckpt_name):
             pass
         else:
-            DownLoadBaseModel()
+            self.DownLoadBaseModel()
     def loadModel(self):
         ckpt_name = self.base_ckpt_name.replace(".pth", "_{}.pt".format(self.device))
         try:
             traced_model = torch.jit.load(os.path.join(self.base_ckpt_dir, ckpt_name), map_location=self.device)
             self.model = traced_model
         except:
-            check_models()
+            self.check_models()
             self.model = InSPyReNet_SwinB(depth=64, pretrained=False, threshold=None)
             self.model.eval()
             self.model.load_state_dict(torch.load(os.path.join(self.base_ckpt_dir  , self.base_ckpt_name), map_location="cpu"),strict=True,)
