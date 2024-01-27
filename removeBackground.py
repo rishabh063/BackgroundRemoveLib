@@ -2,6 +2,11 @@ import urllib.request
 import os 
 import torch
 from InSPyReNet import InSPyReNet_SwinB
+import torchvision.transforms as transforms
+import torch.nn.functional as F
+import numpy as np
+import cv2
+from PIL import Image
 class BackGroundProcessor:
     device='cuda'
     base_model_link='https://ecombuckets3.s3.ap-south-1.amazonaws.com/BackGroundRem/inspyrenetBase.pth'
@@ -27,12 +32,12 @@ class BackGroundProcessor:
             self.model.eval()
             self.model.load_state_dict(torch.load(os.path.join(self.base_ckpt_dir  , self.base_ckpt_name), map_location="cpu"),strict=True,)
             self.model = self.model.to(self.device)
-            traced_model = torch.jit.trace(self.model,torch.rand(1, 3, *self.base_size).to(self.device),strict=True)
+            traced_model = torch.jit.trace(self.model,torch.rand(1, 3, self.base_size).to(self.device),strict=True)
             del self.model
             self.model = traced_model
             torch.jit.save(self.model, os.path.join(self.base_ckpt_dir, ckpt_name))
         self.transform = transforms.Compose([
-            transforms.Resize(base_size),  # Resize image to base_size
+            transforms.Resize(self.base_size),  # Resize image to base_size
             transforms.ToTensor(),         # Convert image to a PyTorch Tensor
             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize the tensor
             ])
@@ -47,7 +52,7 @@ class BackGroundProcessor:
         pred = F.interpolate(pred, shape, mode="bilinear", align_corners=True)
         pred = pred.data.cpu()
         pred = pred.numpy().squeeze()
-
+        threshold=None
         if threshold is not None:
             pred = (pred > float(threshold)).astype(np.float64)
 
