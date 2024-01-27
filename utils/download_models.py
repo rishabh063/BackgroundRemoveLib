@@ -11,5 +11,6 @@ def downloader(name):
     else:
         os.makedirs(checkpoints_dir, exist_ok=True)
         urllib.request.urlretrieve(url[name], checkpoints_dir + name)
+    return checkpoints_dir + name
 
 
