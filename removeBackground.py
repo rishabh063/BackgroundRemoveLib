@@ -1,10 +1,11 @@
 import urllib.request
 import os 
 import torch
+from InSPyReNet import InSPyReNet_SwinB
 class BackGroundProcessor:
     device='cuda'
     base_model_link='https://ecombuckets3.s3.ap-south-1.amazonaws.com/BackGroundRem/inspyrenetBase.pth'
-    base_ckpt_dir='model/'
+    base_ckpt_dir='models/'
     base_ckpt_name='backgroundRemBase.pth'
     base_size=[1024,1024]
     def DownLoadBaseModel(self):

@@ -9,12 +9,12 @@ filepath = os.path.abspath(__file__)
 repopath = os.path.split(filepath)[0]
 sys.path.append(repopath)
 
-from transparent_background.modules.layers import *
-from transparent_background.modules.context_module import *
-from transparent_background.modules.attention_module import *
-from transparent_background.modules.decoder_module import *
+from modules.layers import *
+from context_module import *
+from attention_module import *
+from decoder_module import *
 
-from transparent_background.backbones.SwinTransformer import SwinB
+from SwinTransformer import SwinB
 
 class InSPyReNet(nn.Module):
     def __init__(self, backbone, in_channels, depth=64, base_size=[384, 384], threshold=512, **kwargs):
