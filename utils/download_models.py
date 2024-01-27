@@ -3,7 +3,7 @@ url={
     'cascadepsp_finetuned_carveset.pth':'https://ecombuckets3.s3.ap-south-1.amazonaws.com/BackGroundRem/cascadepsp_finetuned_carveset.pth'
 }
 checkpoints_dir='models/'
-def Downloader(name):
+def downloader(name):
     if os.path.exists(checkpoints_dir + name):
         return checkpoints_dir + name
     else:
