@@ -9,15 +9,15 @@ from PIL import Image
 from torchvision import transforms
 from typing import Union, List
 
-from cascadepsp.pspnet import RefinementModule
-from cascadepsp.utils import (
+from .cascadepsp.pspnet import RefinementModule
+from .cascadepsp.utils import (
     process_im_single_pass,
     process_high_res_im,
 )
-from models_loc import cascadepsp_finetuned, cascadepsp_pretrained
-from utils.image_utils import convert_image, load_image
-from utils.models_utils import get_precision_autocast, cast_network
-from utils.pool_utils import batch_generator, thread_pool_processing
+from .model_loc import cascadepsp_finetuned, cascadepsp_pretrained
+from .utils.image_utils import convert_image, load_image
+from .utils.models_utils import get_precision_autocast, cast_network
+from .utils.pool_utils import batch_generator, thread_pool_processing
 
 __all__ = ["CascadePSP"]
 

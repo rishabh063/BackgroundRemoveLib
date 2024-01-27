@@ -1,13 +1,7 @@
-"""
-Source url: https://github.com/OPHoperHPO/freezed_carvekit_2023
-Author: Nikita Selin [OPHoperHPO](https://github.com/OPHoperHPO).
 
-License: Apache License 2.0
-"""
 import pathlib
-from carvekit.ml.files import checkpoints_dir
-from utils.download_models import downloader
-
+from .utils.download_models import downloader
+checkpoints_dir='/models'
 
 def u2net_full_pretrained() -> pathlib.Path:
     """Returns u2net pretrained model location
