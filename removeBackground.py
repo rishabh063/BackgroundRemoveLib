@@ -23,7 +23,7 @@ class BackGroundProcessor:
             self.model = traced_model
         except:
             self.check_models()
-            self.model = InSPyReNet_SwinB(depth=64, pretrained=False, threshold=None)
+            self.model = InSPyReNet_SwinB(depth=64, pretrained=False,base_size=self.base_size, threshold=None )
             self.model.eval()
             self.model.load_state_dict(torch.load(os.path.join(self.base_ckpt_dir  , self.base_ckpt_name), map_location="cpu"),strict=True,)
             self.model = self.model.to(self.device)
