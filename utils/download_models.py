@@ -1,3 +1,5 @@
+import os 
+import urllib
 url={
     'fba_matting.pth':'https://ecombuckets3.s3.ap-south-1.amazonaws.com/BackGroundRem/fba_matting.pth',
     'cascadepsp_finetuned_carveset.pth':'https://ecombuckets3.s3.ap-south-1.amazonaws.com/BackGroundRem/cascadepsp_finetuned_carveset.pth'
