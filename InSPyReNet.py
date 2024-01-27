@@ -14,7 +14,7 @@ from modules.context_module import *
 from modules.attention_module import *
 from modules.decoder_module import *
 
-from SwinTransformer import SwinB
+from backbone.SwinTransformer import SwinB
 
 class InSPyReNet(nn.Module):
     def __init__(self, backbone, in_channels, depth=64, base_size=[384, 384], threshold=512, **kwargs):
