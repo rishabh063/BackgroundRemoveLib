@@ -1,7 +1,7 @@
 import urllib.request
 import os 
 import torch
-from InSPyReNet import InSPyReNet_SwinB
+from .InSPyReNet import InSPyReNet_SwinB
 import torchvision.transforms as transforms
 import torch.nn.functional as F
 import numpy as np
