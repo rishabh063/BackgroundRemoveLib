@@ -10,9 +10,9 @@ repopath = os.path.split(filepath)[0]
 sys.path.append(repopath)
 
 from modules.layers import *
-from context_module import *
-from attention_module import *
-from decoder_module import *
+from modules.context_module import *
+from modules.attention_module import *
+from modules.decoder_module import *
 
 from SwinTransformer import SwinB
 
