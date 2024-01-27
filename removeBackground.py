@@ -33,7 +33,7 @@ class BackGroundProcessor:
             self.model.eval()
             self.model.load_state_dict(torch.load(os.path.join(self.base_ckpt_dir  , self.base_ckpt_name), map_location="cpu"),strict=True,)
             self.model = self.model.to(self.device)
-            traced_model = torch.jit.trace(self.model,torch.rand(1, 3, self.base_size).to(self.device),strict=True)
+            traced_model = torch.jit.trace(self.model,torch.rand(1, 3, *self.base_size).to(self.device),strict=True)
             del self.model
             self.model = traced_model
             torch.jit.save(self.model, os.path.join(self.base_ckpt_dir, ckpt_name))
