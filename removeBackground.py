@@ -14,6 +14,7 @@ class BackGroundProcessor:
     base_ckpt_name='backgroundRemBase.pth'
     base_size=[1024,1024]
     def DownLoadBaseModel(self):
+        os.makedirs(self.base_ckpt_dir, exist_ok=True)
         urllib.request.urlretrieve(self.base_model_link, self.base_ckpt_dir + self.base_ckpt_name)
     
     def check_models(self):
