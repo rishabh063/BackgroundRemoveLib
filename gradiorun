@@ -1,0 +1,150 @@
+import cv2
+import numpy as np
+import time
+from PIL import Image, ImageFilter , ImageDraw
+from transparent_background import Remover
+import gradio as gr
+import os
+import cv2
+import numpy as np
+import torch
+import AEMatter.model as model
+import traceback
+
+matmodel = model.AEMatter()
+matmodel.load_state_dict(torch.load('AEMFIX.ckpt',map_location='cuda')['model'])
+matmodel=matmodel.cuda()
+matmodel.eval()
+
+
+
+remover = Remover(jit=True) # default setting
+
+from ultralytics import YOLO
+model = YOLO('yolov8n.pt')
+trueindex={0 , 14 , 15 , 16 , 17 , 18 , 19 , 20 , 21 , 22 , 23 ,49 , 50 , 58 , 77 }
+
+def PostProcessCheck(input):
+    try:
+        input_img=input.convert('RGB')
+        results = model(input_img)  # list of 1 Results object
+        bboxes = results[0].boxes.xyxy  # Assuming the first item in the list is what we want
+        largest_area = 0
+        largest_bbox_class_id = -1
+        for count,bbox in enumerate(bboxes):
+            x_min, y_min, x_max, y_max= bbox
+            area = (x_max - x_min) * (y_max - y_min)
+            if area > largest_area:
+                largest_area = area
+                largest_bbox_class_id = count
+        if int(results[0].boxes.cls.cpu().numpy()[largest_bbox_class_id]) in trueindex:        
+            return True 
+        return False 
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        traceback.print_exc()  # Print the stack trace to help diagnose the issue
+        return False 
+
+
+def assign_kernel_size_linearly(image):
+    # total_pixels = image.width * image.height
+    image_array = np.array(image)
+    non_background_pixels = np.count_nonzero(image_array)
+    kernel_size=int((0.0174+5125/non_background_pixels)**(-1))
+    return kernel_size
+
+def generate_trimap(mask, erosion_kernel_size=0 , dilation_kernel_size=10):
+    erosion_kernel_size=assign_kernel_size_linearly(mask)
+    # print(mask.size , erosion_kernel_size)
+    mask_np = np.array(mask)
+    thresholded_mask = np.where(mask_np > 50, 255, 0).astype(np.uint8)
+    erosion_kernel = np.ones((erosion_kernel_size, erosion_kernel_size), np.uint8)
+    dilation_kernel = np.ones((dilation_kernel_size, dilation_kernel_size), np.uint8)
+    eroded = cv2.erode(thresholded_mask, erosion_kernel, iterations=1)
+    dilated = cv2.dilate(thresholded_mask, dilation_kernel, iterations=1)
+    trimap = np.full(mask_np.shape, 128, dtype=np.uint8)
+    trimap[eroded == 255] = 255
+    trimap[dilated == 0] = 0
+    return Image.fromarray(trimap)
+
+def cal_foreground(image, alpha):
+    image = image.convert('RGB')
+    alpha = alpha.convert('L')
+    image2=image.copy()
+    image2.putalpha(alpha)
+    alpha = np.array(alpha)
+    alpha = alpha / 255.0  # Normalize alpha to [0, 1]
+    alpha = alpha[..., np.newaxis]  # Add an axis for broadcasting
+    image = np.array(image)
+    foreground = image * alpha  # Apply alpha mask
+    alpha = (alpha * 255).astype(np.uint8)  # Convert alpha back to [0, 255]
+    foreground = np.concatenate((foreground, alpha), axis=-1).astype(np.uint8)  # Add alpha channel
+    foreground = Image.fromarray(foreground, 'RGBA')  # Convert to PIL Image in RGBA mode
+    return foreground , image2
+
+    
+def process_matting(imageRaw, trimap):
+    rawimg = np.array(imageRaw)
+    trimap = np.array(trimap.convert('L'))
+    trimap_nonp=trimap.copy()
+    h,w,c=rawimg.shape
+    nonph,nonpw,_=rawimg.shape
+    newh= (((h-1)//32)+1)*32
+    neww= (((w-1)//32)+1)*32
+    padh=newh-h
+    padh1=int(padh/2)
+    padh2=padh-padh1
+    padw=neww-w
+    padw1=int(padw/2)
+    padw2=padw-padw1
+    rawimg_pad=cv2.copyMakeBorder(rawimg,padh1,padh2,padw1,padw2,cv2.BORDER_REFLECT)
+    trimap_pad=cv2.copyMakeBorder(trimap,padh1,padh2,padw1,padw2,cv2.BORDER_REFLECT)
+    h_pad,w_pad,_=rawimg_pad.shape
+    tritemp = np.zeros([*trimap_pad.shape, 3], np.float32)
+    tritemp[:, :, 0] = (trimap_pad == 0)
+    tritemp[:, :, 1] = (trimap_pad == 128)
+    tritemp[:, :, 2] = (trimap_pad == 255)
+    tritempimgs=np.transpose(tritemp,(2,0,1))
+    tritempimgs=tritempimgs[np.newaxis,:,:,:]
+    img=np.transpose(rawimg_pad,(2,0,1))[np.newaxis,::-1,:,:]
+    img=np.array(img,np.float32)
+    img=img/255.
+    img=torch.from_numpy(img).cuda()
+    tritempimgs=torch.from_numpy(tritempimgs).cuda()
+    with torch.no_grad():
+      pred=matmodel(img,tritempimgs)
+      pred=pred.detach().cpu().numpy()[0]
+      pred=pred[:,padh1:padh1+h,padw1:padw1+w]
+      preda=pred[0:1,]*255
+      preda=np.transpose(preda,(1,2,0))
+      preda=preda*(trimap_nonp[:,:,None]==128)+(trimap_nonp[:,:,None]==255)*255
+    preda=np.array(preda,np.uint8)
+    array_bgr = cv2.cvtColor(preda, cv2.COLOR_RGB2BGR)
+    array_rgb = cv2.cvtColor(array_bgr, cv2.COLOR_BGR2RGB)
+    pil_image = Image.fromarray(array_rgb)
+    return pil_image
+
+
+def process_image(input_image):
+    # Example processing (identity function in this case)
+    start=time.time()
+    output_image = remover.process(input_image) 
+    output_image , oldalgo=cal_foreground( input_image, output_image.split()[3])
+    postprocessbool =PostProcessCheck(input_image)
+    print(postprocessbool)
+    if postprocessbool:
+        trimap=generate_trimap(output_image.split()[3] )
+        mattMask=process_matting(input_image.convert('RGB') ,trimap)
+        output_image , oldalgo=cal_foreground( input_image, mattMask)
+    
+    return output_image 
+
+# Create the Gradio interface
+iface = gr.Interface(fn=process_image,
+                     inputs=[gr.components.Image(type="pil")],
+                     outputs=[gr.components.Image(type="pil") ],
+                     title="Zyng background rem test",
+                     description="Testing purpose only")
+
+# Launch the interface
+iface.launch()
